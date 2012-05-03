@@ -13,16 +13,19 @@ add it to installed apps in django settings.py
         ...
     )
 
-now add this to your settings.py:
+now add this to your settings.py ('app' is your project name where models.py is located):
 
-    ORPHANED_APPS = ['app']
-    ORPHANED_MODEL_DIRS = {
+    ORPHANED_APPS_MEDIABASE_DIRS = {
         'app':{
-            'modelname':'root directory'
+            'root':MEDIABASE_ROOT,  # MEDIABASE_ROOT => default location of your uploaded items e.g. /var/www/mediabase
         }
     }
 
-the least to do is to run this command to delete all orphaned files
+the least to do is to run this command to show all orphaned files
+
+    python manage.py deleteorphaned --info
+
+and to finally delete all orphaned files
 
     python manage.py deleteorphaned 
 
