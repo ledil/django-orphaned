@@ -8,7 +8,7 @@ install via easy_install or pip
 
 with pip
 
-    pip install git+git://github.com/ledil/django-orphaned.git
+    pip install django-orphaned
 
 add it to installed apps in django settings.py
 
