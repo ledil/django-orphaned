@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.contenttypes.models import ContentType
 from django_orphaned.app_settings import ORPHANED_APPS_MEDIABASE_DIRS
+from itertools import chain
 from optparse import make_option
 import os
 import shutil
@@ -25,19 +26,19 @@ class Command(BaseCommand):
                 total_freed_bytes = 0
                 total_freed = '0'
                 delete_files = []
-    
+
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
                     fields = []
                     for field in mc._meta.fields:
                         if (field.get_internal_type() == 'FileField'):
                             fields.append(field.name)
-        
+
                     # we have found a model with FileFields
                     if (len(fields)>0):
-                        files = mc.objects.all().values_list(*fields,flat=True)
-                        needed_files.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[app]['root'], file) for file in files])
-    
+                        files = mc.objects.all().values_list(*fields)
+                        needed_files.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[app]['root'], file) for file in chain.from_iterable(files)])
+
                 # traverse root folder and store all files and empty directories
                 for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
                     if (len(files)>0):
@@ -46,7 +47,7 @@ class Command(BaseCommand):
                     else:
                         if (root != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']) and ((root+'/') != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
                             possible_empty_dirs.append(root)
-    
+
                 # ignore empty dirs with subdirs + files
                 for ed in possible_empty_dirs:
                     dont_delete = False
@@ -69,7 +70,7 @@ class Command(BaseCommand):
                 for df in delete_files:
                     total_freed_bytes += os.path.getsize(df)
                 total_freed = "%0.1f MB" % (total_freed_bytes/(1024*1024.0))
-    
+
                 # only show
                 if (self.only_info):
                     if (len(delete_files)>0):
