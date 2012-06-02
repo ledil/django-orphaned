@@ -26,6 +26,7 @@ class Command(BaseCommand):
                 total_freed_bytes = 0
                 total_freed = '0'
                 delete_files = []
+                skip = ORPHANED_APPS_MEDIABASE_DIRS[app].get('skip', ())
 
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
@@ -40,7 +41,15 @@ class Command(BaseCommand):
                         needed_files.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[app]['root'], file) for file in chain.from_iterable(files)])
 
                 # traverse root folder and store all files and empty directories
+                def should_skip(dir):
+                    for skip_dir in skip:
+                        if dir.startswith(skip_dir):
+                            return True
+                    return False
+
                 for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
+                    if should_skip(root):
+                        continue
                     if (len(files)>0):
                         for basename in files:
                             all_files.append(os.path.join(root, basename))
