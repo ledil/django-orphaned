@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='django-orphaned',
     description='delete all orphaned files from your models',
-    version='0.2',
+    version='0.3',
     author='Leonardo Di Lella',
     author_email='leonardo.dilella@mobileapart.com',
     license='MIT',
