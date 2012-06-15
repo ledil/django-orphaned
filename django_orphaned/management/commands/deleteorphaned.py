@@ -30,6 +30,8 @@ class Command(BaseCommand):
 
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
+                    if mc is None:
+                        continue
                     fields = []
                     for field in mc._meta.fields:
                         if (field.get_internal_type() == 'FileField'):
