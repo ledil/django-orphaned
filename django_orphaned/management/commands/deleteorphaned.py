@@ -40,7 +40,7 @@ class Command(BaseCommand):
 
                     # we have found a model with FileFields
                     if (len(fields)>0):
-                        files = mc.objects.all().values_list(*fields)
+                        files = filter(None, mc.objects.all().values_list(*fields))
                         needed_files.extend([os.path.join(settings.MEDIA_ROOT, file) for file in chain.from_iterable(files)])
 
                 # traverse root folder and store all files and empty directories
