@@ -25,7 +25,8 @@ now add this to your settings.py ('app' is your project name where models.py is 
             'skip': (               # optional iterable of subfolders to preserve, e.g. sorl.thumbnail cache
                 path.join(MEDIABASE_ROOT, 'cache'),
                 path.join(MEDIABASE_ROOT, 'foobar'),
-            )
+            ),
+            'exclude': ('.gitignore') # optional iterable of files to preserve
         }
     }
 

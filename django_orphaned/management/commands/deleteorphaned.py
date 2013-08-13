@@ -28,6 +28,7 @@ class Command(BaseCommand):
                 total_freed = '0'
                 delete_files = []
                 skip = ORPHANED_APPS_MEDIABASE_DIRS[app].get('skip', ())
+                exclude = ORPHANED_APPS_MEDIABASE_DIRS[app].get('exclude', ())
 
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
@@ -55,7 +56,9 @@ class Command(BaseCommand):
                         continue
                     if (len(files)>0):
                         for basename in files:
-                            all_files.append(os.path.join(root, basename))
+                            if basename not in exclude:
+                                all_files.append(os.path.join(root, basename))
+                                
                     else:
                         if (root != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']) and ((root+'/') != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
                             possible_empty_dirs.append(root)
