@@ -51,16 +51,19 @@ class Command(BaseCommand):
                             return True
                     return False
 
-                for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
-                    if should_skip(root):
-                        continue
-                    if (len(files)>0):
-                        for basename in files:
-                            if basename not in exclude:
-                                all_files.append(os.path.join(root, basename))
-                                
-                    else:
-                        if (root != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']) and ((root+'/') != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
+                # process each root of the app
+                app_roots = ORPHANED_APPS_MEDIABASE_DIRS[app]['root']
+                if isinstance(app_roots, basestring): # backwards compatibility
+                    app_roots = [app_roots]
+                for app_root in app_roots:
+                    for root, dirs, files in os.walk(app_root):
+                        if should_skip(root):
+                            continue
+                        if (len(files)>0):
+                            for basename in files:
+                                if basename not in exclude:
+                                    all_files.append(os.path.join(root, basename))
+                        elif not os.path.samefile(root, app_root):
                             possible_empty_dirs.append(root)
 
                 # ignore empty dirs with subdirs + files
@@ -81,7 +84,7 @@ class Command(BaseCommand):
                 delete_files.sort()
                 empty_dirs.sort()
 
-                # to be fried
+                # to be freed
                 for df in delete_files:
                     total_freed_bytes += os.path.getsize(df)
                 total_freed = "%0.1f MB" % (total_freed_bytes/(1024*1024.0))
