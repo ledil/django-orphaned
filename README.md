@@ -21,14 +21,16 @@ now add this to your settings.py ('app' is your project name where models.py is 
 
     ORPHANED_APPS_MEDIABASE_DIRS = {
         'app': {
-            'root': MEDIABASE_ROOT,  # MEDIABASE_ROOT => default location of your uploaded items e.g. /var/www/mediabase
+            'root': MEDIABASE_ROOT,  # MEDIABASE_ROOT => default location(s) of your uploaded items e.g. /var/www/mediabase
             'skip': (               # optional iterable of subfolders to preserve, e.g. sorl.thumbnail cache
                 path.join(MEDIABASE_ROOT, 'cache'),
                 path.join(MEDIABASE_ROOT, 'foobar'),
             ),
-            'exclude': ('.gitignore') # optional iterable of files to preserve
+            'exclude': ('.gitignore',) # optional iterable of files to preserve
         }
     }
+
+**NOTE**: from version 0.4.2 you can define ''root'' as string or iterable (list, array)
 
 the least to do is to run this command to show all orphaned files
 
