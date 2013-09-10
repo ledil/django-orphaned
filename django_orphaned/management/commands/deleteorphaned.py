@@ -103,8 +103,7 @@ class Command(BaseCommand):
                         for file in delete_files:
                             print " ", file
                         print "\r\nTotally %s files will be deleted, and "\
-                            "totally %s will be freed.\r\n" % 
-                            (len(delete_files), total_freed)
+                            "totally %s will be freed.\r\n" % (len(delete_files), total_freed)
                     else:
                         print "No files to delete!"
                 # DELETE NOW!
