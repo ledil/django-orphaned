@@ -69,6 +69,12 @@ class Command(BaseCommand):
                                 dont_delete = True
                         except ValueError:
                             pass
+                    for skip_dir in skip:
+                        try:
+                            if (skip_dir.index(ed) == 0):
+                                dont_delete = True
+                        except ValueError:
+                            pass
                     if (not dont_delete):
                         empty_dirs.append(ed)
 
