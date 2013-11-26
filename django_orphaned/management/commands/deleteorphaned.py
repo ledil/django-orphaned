@@ -28,6 +28,7 @@ class Command(BaseCommand):
                 total_freed = '0'
                 delete_files = []
                 skip = ORPHANED_APPS_MEDIABASE_DIRS[app].get('skip', ())
+                exclude = ORPHANED_APPS_MEDIABASE_DIRS[app].get('exclude', ())
 
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
@@ -39,9 +40,9 @@ class Command(BaseCommand):
                             fields.append(field.name)
 
                     # we have found a model with FileFields
-                    if (len(fields)>0):
+                    if len(fields) > 0:
                         files = mc.objects.all().values_list(*fields)
-                        needed_files.extend([os.path.join(settings.MEDIA_ROOT, file) for file in chain.from_iterable(files)])
+                        needed_files.extend([os.path.join(settings.MEDIA_ROOT, file) for file in filter(None, chain.from_iterable(files))])
 
                 # traverse root folder and store all files and empty directories
                 def should_skip(dir):
@@ -50,14 +51,19 @@ class Command(BaseCommand):
                             return True
                     return False
 
-                for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
-                    if should_skip(root):
-                        continue
-                    if (len(files)>0):
-                        for basename in files:
-                            all_files.append(os.path.join(root, basename))
-                    else:
-                        if (root != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']) and ((root+'/') != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
+                # process each root of the app
+                app_roots = ORPHANED_APPS_MEDIABASE_DIRS[app]['root']
+                if isinstance(app_roots, basestring): # backwards compatibility
+                    app_roots = [app_roots]
+                for app_root in app_roots:
+                    for root, dirs, files in os.walk(app_root):
+                        if should_skip(root):
+                            continue
+                        if len(files) > 0:
+                            for basename in files:
+                                if basename not in exclude:
+                                    all_files.append(os.path.join(root, basename))
+                        elif not os.path.samefile(root, app_root):
                             possible_empty_dirs.append(root)
 
                 # ignore empty dirs with subdirs + files
@@ -65,7 +71,7 @@ class Command(BaseCommand):
                     dont_delete = False
                     for files in all_files:
                         try:
-                            if (files.index(ed) == 0):
+                            if files.index(ed) == 0:
                                 dont_delete = True
                         except ValueError:
                             pass
@@ -75,7 +81,7 @@ class Command(BaseCommand):
                                 dont_delete = True
                         except ValueError:
                             pass
-                    if (not dont_delete):
+                    if not dont_delete:
                         empty_dirs.append(ed)
 
                 # select deleted files (delete_files = all_files - needed_files)
@@ -83,25 +89,27 @@ class Command(BaseCommand):
                 delete_files = list(aa.difference(needed_files))
                 delete_files.sort()
                 empty_dirs.sort()
+                empty_dirs = set(empty_dirs) #remove possible duplicates
 
-                # to be fried
+                # to be freed
                 for df in delete_files:
                     total_freed_bytes += os.path.getsize(df)
                 total_freed = "%0.1f MB" % (total_freed_bytes/(1024*1024.0))
 
                 # only show
                 if (self.only_info):
-                    if (len(delete_files)>0):
-                        print "\r\nFollowing files will be deleted:\r\n"
-                        for file in delete_files:
-                            print " ",file
-                    if (len(empty_dirs)>0):
+                    print "\r\n=== %s ===" % app
+                    if len(empty_dirs) > 0:
                         print "\r\nFollowing empty dirs will be removed:\r\n"
                         for file in empty_dirs:
-                            print " ",file
+                            print " ", file
 
-                    if (len(delete_files)>0):
-                        print "\r\nTotally %s files will be deleted, and totally %s will be freed\r\n" % (len(delete_files), total_freed)
+                    if len(delete_files) > 0:
+                        print "\r\nFollowing files will be deleted:\r\n"
+                        for file in delete_files:
+                            print " ", file
+                        print "\r\nTotally %s files will be deleted, and "\
+                            "totally %s will be freed.\r\n" % (len(delete_files), total_freed)
                     else:
                         print "No files to delete!"
                 # DELETE NOW!
@@ -109,4 +117,4 @@ class Command(BaseCommand):
                     for file in delete_files:
                         os.remove(file)
                     for dirs in empty_dirs:
-                        shutil.rmtree(dirs,ignore_errors=True)
+                        shutil.rmtree(dirs, ignore_errors=True)
