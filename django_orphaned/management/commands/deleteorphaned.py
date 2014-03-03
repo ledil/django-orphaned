@@ -1,11 +1,13 @@
-from django.core.management.base import BaseCommand
-from django.contrib.contenttypes.models import ContentType
-from django_orphaned.app_settings import ORPHANED_APPS_MEDIABASE_DIRS
 from itertools import chain
 from optparse import make_option
 import os
 import shutil
+from datetime import datetime
+from django.core.management.base import BaseCommand
+from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+from django_orphaned.app_settings import ORPHANED_APPS_MEDIABASE_DIRS, ORPHANED_LOGS_DIR
+
 
 class Command(BaseCommand):
     help = "Delete all orphaned files"
@@ -96,14 +98,10 @@ class Command(BaseCommand):
                     total_freed_bytes += os.path.getsize(df)
                 total_freed = "%0.1f MB" % (total_freed_bytes/(1024*1024.0))
 
-                # only show
+                # Only show
                 if (self.only_info):
                     print "\r\n=== %s ===" % app
-                    if len(empty_dirs) > 0:
-                        print "\r\nFollowing empty dirs will be removed:\r\n"
-                        for file in empty_dirs:
-                            print " ", file
-
+                    # Files to be deleted
                     if len(delete_files) > 0:
                         print "\r\nFollowing files will be deleted:\r\n"
                         for file in delete_files:
@@ -111,10 +109,80 @@ class Command(BaseCommand):
                         print "\r\nTotally %s files will be deleted, and "\
                             "totally %s will be freed.\r\n" % (len(delete_files), total_freed)
                     else:
-                        print "No files to delete!"
+                        print "No files to delete!\r\n"
+                    # Empty folders to be deleted
+                    if len(empty_dirs) > 0:
+                        print "\r\nFollowing empty dirs will be removed:\r\n"
+                        for file in empty_dirs:
+                            print " ", file
+                        print "\r\nTotally %s dirs will be deleted\r\n" % (len(empty_dirs))
+                    else:
+                        print "No empty dirs to delete!\r\n"
+
                 # DELETE NOW!
                 else:
+                    deleted_files = 0
+                    deleted_dirs = 0
+                    error_files = 0
+                    error_dirs = 0
+                    total_freed_bytes = 0
+                    file_is_open = False
+                    file_log_path = None
+                    if ORPHANED_LOGS_DIR:
+                        filename = datetime.now().strftime("%Y%m%d-%H.%M.%S") + "_orphaned.log"
+                        if empty_dirs:
+                            pass
+                        file_log_path = os.path.join(ORPHANED_LOGS_DIR, filename)
+                        try:
+                            if empty_dirs:
+                                pass
+                            log_file = open(file_log_path, 'w')
+                            file_is_open = True
+                        except IOError:
+                            file_is_open = False
+                            print "Error: Could not Write to File\r\n"
+
                     for file in delete_files:
-                        os.remove(file)
+                        try:
+                            file_size_byte = os.path.getsize(file)
+                            os.remove(file)
+                            total_freed_bytes += file_size_byte
+                            deleted_files += 1
+                            print("DELETED FILE: %s  %s Bytes" % (file, file_size_byte))
+                            if file_is_open:
+                                log_file.write("DELETED FILE: %s  %s Bytes\n" % (file, file_size_byte))
+                        except OSError:
+                            error_files += 1
+                            print("ERROR: %s\n" % file)
+                            if file_is_open:
+                                log_file.write("ERROR: %s\n" % file)
+                    total_freed = "%0.1f MB" % (total_freed_bytes/(1024*1024.0))
+                    print("\r\nTotally %s files deleted. Totally %s freed." % \
+                            (deleted_files, total_freed))
+                    print("\r%s Errors while deleting files." % (error_files))
+                    print("\r\n================\r\n")
+                    if file_is_open:
+                        log_file.write("\r\nTotally %s files deleted. Totally %s freed." % \
+                            (deleted_files, total_freed))
+                        log_file.write("\r%s Errors while deleting files." % (error_files))
+                        log_file.write("\r\n================\r\n")
                     for dirs in empty_dirs:
-                        shutil.rmtree(dirs, ignore_errors=True)
+                        try:
+                            shutil.rmtree(dirs, ignore_errors=False)
+                            deleted_dirs += 1
+                            print("DELETED DIR: %s" % dirs)
+                            if file_is_open:
+                                log_file.write("DELETED DIR: %s\n" % dirs)
+                        except OSError:
+                            error_dirs += 1
+                            print("ERROR: %s\n" % dirs)
+                            if file_is_open:
+                                log_file.write("ERROR: %s\n" % dirs)
+                    print("\r\nTotally %s dirs deleted." % (deleted_dirs))
+                    print("\r%s Errors while deleting empty dirs." % (error_dirs))
+                    if file_log_path:
+                        print("\r\n\nLOG FILE STORED IN: %s\n\r" % (file_log_path))
+                    if file_is_open:
+                        log_file.write("\r\nTotally %s dirs deleted." % (deleted_dirs))
+                        log_file.write("\r%s Errors while deleting empty dirs." % (error_dirs))
+                        log_file.close()
