@@ -36,7 +36,7 @@ class Command(BaseCommand):
                         continue
                     fields = []
                     for field in mc._meta.fields:
-                        if (field.get_internal_type() == 'FileField'):
+                        if (field.get_internal_type() == 'FileField' or field.get_internal_type() == 'ImageField'):
                             fields.append(field.name)
 
                     # we have found a model with FileFields
