@@ -30,6 +30,19 @@ now add this to your settings.py ('app' is your project name where models.py is 
         }
     }
 
+if you have multiple apps with the same media root like:
+
+    ORPHANED_APPS_MEDIABASE_DIRS = {
+        'app1': {
+            'root': MEDIA_ROOT,
+        },
+        'app2': {
+            'root': MEDIA_ROOT,
+        },
+    }
+
+django-orphaned will not delete files needed only in one of them.
+
 **NOTE**: from version 0.4.2 you can define ''root'' as string or iterable (list, array)
 
 the least to do is to run this command to show all orphaned files
