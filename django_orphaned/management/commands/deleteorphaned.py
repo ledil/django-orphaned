@@ -62,7 +62,7 @@ class Command(BaseCommand):
                         if len(files) > 0:
                             for basename in files:
                                 if basename not in exclude:
-                                    all_files.append(os.path.join(root, basename))
+                                    all_files.append(os.path.join(root.decode('utf-8'), basename.decode('utf-8')))
                         elif not os.path.samefile(root, app_root):
                             possible_empty_dirs.append(root)
 
