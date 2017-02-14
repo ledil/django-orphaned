@@ -1,9 +1,10 @@
-from django.core.management.base import BaseCommand
 from django.contrib.contenttypes.models import ContentType
+from django.core.management.base import BaseCommand
 from django_orphaned.app_settings import ORPHANED_APPS_MEDIABASE_DIRS
 from optparse import make_option
 import os
 import shutil
+
 
 class Command(BaseCommand):
     help = "Delete all orphaned files"
@@ -30,13 +31,14 @@ class Command(BaseCommand):
                     mc = model.model_class()
                     fields = []
                     for field in mc._meta.fields:
-                        if (field.get_internal_type() == 'FileField'):
+                        if (field.get_internal_type() == 'FileField') or (field.get_internal_type() == 'ImageField'):
                             fields.append(field.name)
 
                     # we have found a model with FileFields
                     if (len(fields)>0):
-                        files = mc.objects.all().values_list(*fields,flat=True)
-                        needed_files.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[app]['root'], file) for file in files])
+                        for field in fields:
+                            files = mc.objects.all().values_list(field, flat=True)
+                            needed_files.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[app]['root'], file) for file in files])
 
                 # traverse root folder and store all files and empty directories
                 for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
@@ -91,3 +93,5 @@ class Command(BaseCommand):
                         os.remove(file)
                     for dirs in empty_dirs:
                         shutil.rmtree(dirs,ignore_errors=True)
+
+
