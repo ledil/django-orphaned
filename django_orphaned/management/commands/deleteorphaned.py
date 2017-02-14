@@ -17,7 +17,7 @@ class Command(BaseCommand):
         self.only_info = options.get('info')
 
         for app in ORPHANED_APPS_MEDIABASE_DIRS.keys():
-            if (ORPHANED_APPS_MEDIABASE_DIRS[app].has_key('root')):
+            if (ORPHANED_APPS_MEDIABASE_DIRS[app].get('root')):
                 needed_files = []
                 all_files = []
                 possible_empty_dirs = []
