@@ -2,6 +2,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django_orphaned.app_settings import ORPHANED_APPS_MEDIABASE_DIRS
 from optparse import make_option
+from django.core.exceptions import ImproperlyConfigured
 import os
 import shutil
 
@@ -94,4 +95,5 @@ class Command(BaseCommand):
                     for dirs in empty_dirs:
                         shutil.rmtree(dirs,ignore_errors=True)
 
-
+            else:
+                raise ImproperlyConfigured("MEDIA ROOT settings is not defined in ORPHANED_APPS_MEDIABASE_DIRS settings.")
