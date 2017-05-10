@@ -17,9 +17,11 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         self.only_info = options.get('info')
+        self.verbose = True
 
         for app in ORPHANED_APPS_MEDIABASE_DIRS.keys():
-            print('', "=" * 80, "\n\tProcessing App", app, '\n', "=" * 80)
+            if self.verbose:
+                print('', "=" * 80, "\n\tProcessing App", app, '\n', "=" * 80)
             if (ORPHANED_APPS_MEDIABASE_DIRS[app].get('root')):
                 file_paths_in_db = []
                 files_in_app_root = []
@@ -27,7 +29,7 @@ class Command(BaseCommand):
                 empty_dirs = []
                 total_freed_bytes = 0
                 total_freed = '0'
-                delete_files = []
+                delete_files_list = []
 
                 for model in ContentType.objects.filter(app_label=app):
                     mc = model.model_class()
@@ -38,37 +40,47 @@ class Command(BaseCommand):
 
                     # we have found a model with FileFields or ImageFields
                     if (len(fields) > 0):
-                        print("\nFound ", len(fields), " fields" if len(
-                            fields) > 1 else "field", " - ", fields, " in model: ", mc.__name__, '\n', "-" * 80,)
+                        if self.verbose:
+                            print("\nFound ", len(fields), " fields" if len(
+                                fields) > 1 else "field", " - ", fields, " in model: ", mc.__name__)
 
                         for field in fields:
                             files = mc.objects.all().values_list(field, flat=True)
                             file_paths_in_db.extend([os.path.join(ORPHANED_APPS_MEDIABASE_DIRS[
-                                                app]['root'], file) for file in files])
-                        print(len(file_paths_in_db),
-                              " files paths are stored database.")
-
+                                app]['root'], file) for file in files])
+                            print("\n--------", files, "\n")
+                        if self.verbose:
+                            print(len(files),
+                                  " file are stored database.\n", "-" * 80,)
+                
+                print("\n", file_paths_in_db)
                 # traverse root folder and store all files and empty
                 # directories
                 for root, dirs, files in os.walk(ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
                     if (len(files) > 0):
                         for basename in files:
-                            files_in_app_root.append(os.path.join(root, basename))
+                            print(basename)
+                            files_in_app_root.append(
+                                os.path.join(root, basename))
                     else:
                         if (root != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']) and ((root + '/') != ORPHANED_APPS_MEDIABASE_DIRS[app]['root']):
                             possible_empty_dirs.append(root)
 
                 if files_in_app_root:
-                    print("--> Total files found in app root directory: ",
-                          len(files_in_app_root))
+                    if self.verbose:
+                        print("--> Total files found in app root directory: ",
+                              len(files_in_app_root))
                 else:
-                    print("+++ No file found in app root directory +++")
+                    if self.verbose:
+                        print("+++ No file found in app root directory +++")
 
                 if possible_empty_dirs:
-                    print("--> empty directories found: ",
-                          len(possible_empty_dirs), " - ", possible_empty_dirs)
+                    if self.verbose:
+                        print("--> empty directories found: ",
+                              len(possible_empty_dirs), " - ", possible_empty_dirs)
                 else:
-                    print("+++ No empty directories found +++")
+                    if self.verbose:
+                        print("+++ No empty directories found +++")
 
                 # Ignore empty dirs with subdirs + files
                 for ed in possible_empty_dirs:
@@ -82,47 +94,63 @@ class Command(BaseCommand):
                     if (not dont_delete):
                         empty_dirs.append(ed)
 
-                # select deleted files (delete_files = files_in_app_root -
-                # file_paths_in_db)
-                file_paths_in_filesystem = set(files_in_app_root)
-                delete_files = list(file_paths_in_filesystem.difference(file_paths_in_db))
-                print(len(file_paths_in_db), len(file_paths_in_filesystem))
-                print(delete_files)
+                # select deleted files
+                # delete_files_list = files_in_app_root - file_paths_in_db
+                files_in_app_root_set = set(files_in_app_root)
+                file_paths_in_db_set = set(file_paths_in_db)
+                print("\n files in app root: ", files_in_app_root_set)
+                print("\n files in databse: ", file_paths_in_db_set)
 
-                delete_files.sort()
+                delete_files_list = list(
+                    files_in_app_root_set.difference(file_paths_in_db_set))
+
+                delete_files_list.sort()
                 empty_dirs.sort()
 
-                #TODO: to be fried
-                for df in delete_files:
+                if self.verbose:
+                    print("\nDELETING FILES\n", delete_files_list)
+
+                return
+                # TODO: to be fried
+                for df in delete_files_list:
                     total_freed_bytes += os.path.getsize(df)
                 total_freed = "%0.1f MB" % (
                     total_freed_bytes / (1024 * 1024.0))
 
                 # only show
                 if (self.only_info):
-                    if (len(delete_files) > 0):
-                        print("\r\nFollowing files will be deleted:\r\n")
-                        for file in delete_files:
-                            print(" ", file)
-                    if (len(empty_dirs) > 0):
-                        print("\r\nFollowing empty dirs will be removed:\r\n")
-                        for file in empty_dirs:
-                            print(" ", file)
+                    if (len(delete_files_list) > 0):
+                        if self.verbose:
+                            print("\r\nFollowing files will be deleted:\r\n")
+                        for file in delete_files_list:
+                            if self.verbose:
+                                print(" ", file)
 
-                    if (len(delete_files) > 0):
-                        print("\r\nTotally %s files will be deleted, and totally %s will be freed\r\n" % (
-                            len(delete_files), total_freed))
+                    if (len(empty_dirs) > 0):
+                        if self.verbose:
+                            print("\r\nFollowing empty dirs will be removed:\r\n")
+                        for file in empty_dirs:
+                            if self.verbose:
+                                print(" ", file)
+
+                    if (len(delete_files_list) > 0):
+                        if self.verbose:
+                            print("\r\nTotally %s files will be deleted, and totally %s will be freed\r\n" % (
+                                len(delete_files_list), total_freed))
                     else:
-                        print("No files to delete!")
+                        if self.verbose:
+                            print("No files to delete!")
 
                 # DELETE NOW!
                 else:
-                    for file in delete_files:
+                    for file in delete_files_list:
                         # os.remove(file)
-                        print("removing %s" % file)
+                        if self.verbose:
+                            print("removing %s" % file)
                     for dirs in empty_dirs:
                         # shutil.rmtree(dirs,ignore_errors=True)
-                        print("removing tree %s" % dirs)
+                        if self.verbose:
+                            print("removing tree %s" % dirs)
 
             else:
                 raise ImproperlyConfigured(
